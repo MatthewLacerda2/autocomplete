@@ -16,22 +16,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="logo-area">
-                <div class="app-icon">✦</div>
-                <div class="title-wrapper">
-                    <h1>Aura<span>Write</span></h1>
-                    <p class="subtitle">AI Text Editor & Dynamic Writing Companion</p>
-                </div>
-            </div>
-            <div class="connection-status" id="backend-status">
-                <span class="status-indicator pinging"></span>
-                <span class="status-text">Connecting to backend...</span>
-            </div>
-        </header>
-
-        <!-- Main Content Workspace (Split Layout) -->
+        <!-- Main Content Workspace (Full Screen Split Layout) -->
         <div class="workspace-wrapper">
             <!-- Left Side: Editor Section -->
             <main class="editor-section">
@@ -87,9 +72,10 @@
                             <span class="stat-divider">|</span>
                             <span class="stat-item"><strong id="char-count">0</strong> characters</span>
                         </div>
-                        <div class="autocomplete-state-indicator" id="autocomplete-indicator">
-                            <span class="indicator-dot"></span>
-                            <span class="indicator-message">Ready</span>
+                        <div class="footer-right">
+                            <span class="tip"><span class="key">Tab</span> Accept</span>
+                            <span class="stat-divider">|</span>
+                            <span class="tip"><span class="key">Esc</span> Dismiss</span>
                         </div>
                     </div>
                 </div>
@@ -130,16 +116,6 @@
                 </div>
             </aside>
         </div>
-
-        <!-- Shortcuts / Guide -->
-        <footer class="app-footer">
-            <div class="shortcut-tips">
-                <div class="tip"><span class="key">Tab</span> Accept Suggestion</div>
-                <div class="tip"><span class="key">Esc</span> Dismiss Suggestion</div>
-                <div class="tip"><span class="key">typing...</span> debounced trigger (150ms pause)</div>
-                <div class="tip"><span class="key">WiFi Host</span> available on your local network</div>
-            </div>
-        </footer>
     </div>
 
     <!-- JS Core Script -->

@@ -59,6 +59,8 @@ async function checkBackendHealth() {
 
 function setBackendStatus(connected, message) {
     isBackendConnected = connected;
+    if (!backendStatus) return; // Safeguard if status element is removed
+    
     const indicator = backendStatus.querySelector('.status-indicator');
     const text = backendStatus.querySelector('.status-text');
     
@@ -211,6 +213,7 @@ function updateCounts(text) {
 
 // 5. Autocomplete State Control
 function setAutocompleteState(state, message) {
+    if (!autocompleteIndicator) return; // Safeguard if indicator is removed
     autocompleteIndicator.className = 'autocomplete-state-indicator';
     autocompleteIndicator.classList.add(`state-${state}`);
     

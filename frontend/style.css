@@ -1,5 +1,5 @@
 :root {
-    /* Professional Zinc / Slate Dark theme */
+    /* Refined Zinc / Slate Dark theme */
     --bg-color: #09090b;          /* Zinc 950 */
     --card-bg: #121214;           /* Solid Matte Charcoal */
     --card-border: #27272a;       /* Zinc 800 */
@@ -8,7 +8,7 @@
     --text-primary: #fafafa;      /* Zinc 50 */
     --text-secondary: #a1a1aa;    /* Zinc 400 */
     --text-muted: #52525b;        /* Zinc 600 */
-    --text-ghost: rgba(255, 255, 255, 0.35); /* Pure ghost suggestion */
+    --text-ghost: rgba(255, 255, 255, 0.35); /* Autocomplete ghost text */
     
     --accent-blue: #2563eb;       /* Professional Royal Blue (Brand) */
     --accent-sky: #3b82f6;        /* UI Active Highlights */
@@ -30,153 +30,73 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     font-family: var(--font-body);
-    min-height: 100vh;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow-x: hidden;
-    position: relative;
     -webkit-font-smoothing: antialiased;
 }
 
-/* Distraction-Free Professional Canvas Layout */
+/* Full Viewport App Layout Container */
 .app-container {
     width: 100%;
-    max-width: 1200px;
-    padding: 32px 24px;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    z-index: 1;
+    overflow: hidden;
 }
 
-/* Header */
-.app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--card-border);
-    padding-bottom: 20px;
-}
-
-.logo-area {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.app-icon {
-    font-size: 20px;
-    color: var(--accent-sky);
-    font-weight: 700;
-}
-
-.title-wrapper h1 {
-    font-family: var(--font-heading);
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    color: var(--text-primary);
-}
-
-.title-wrapper h1 span {
-    color: var(--accent-sky);
-    font-weight: 400;
-}
-
-.subtitle {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 1px;
-    font-weight: 400;
-    letter-spacing: 0.1px;
-}
-
-/* Connection status pill */
-.connection-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--card-border);
-    border-radius: 6px;
-    font-size: 10.5px;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.status-indicator {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: var(--text-muted);
-}
-
-.status-indicator.online {
-    background-color: var(--accent-success);
-}
-
-.status-indicator.offline {
-    background-color: #ef4444;
-}
-
-.status-indicator.pinging {
-    background-color: #eab308;
-    animation: blink 1s infinite alternate;
-}
-
-/* Split Workspace layout */
+/* Workspace Wrapper stretching to 100% full screen */
 .workspace-wrapper {
     display: flex;
-    gap: 24px;
-    align-items: stretch;
+    height: 100%;
     width: 100%;
+    gap: 0; /* Clean unified panel line-joints */
+    align-items: stretch;
 }
 
 .editor-section {
     flex: 1;
     min-width: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
 
 .chat-sidebar-section {
-    width: 340px;
+    width: 350px;
     flex-shrink: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-/* Opaque Solid Professional Workspace Card */
+/* Clean Panel Borderless Workspace */
 .editor-glass-card {
     background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    overflow: hidden;
+    border: none;
+    border-right: 1px solid var(--card-border);
+    border-radius: 0; /* Flat edge panel matching screen margins */
     display: flex;
     flex-direction: column;
     height: 100%;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: none;
 }
 
+/* Focused editor sidebar borders */
 .editor-glass-card:focus-within {
-    border-color: var(--accent-blue);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 
-                0 0 0 1px var(--accent-blue),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-right-color: var(--accent-blue);
 }
 
-/* Toolbar segment */
+/* Toolbar controls */
 .editor-toolbar {
-    padding: 12px 18px;
-    background: rgba(0, 0, 0, 0.15);
+    padding: 14px 20px;
+    background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid var(--card-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    height: 52px;
 }
 
 .toolbar-left {
@@ -184,11 +104,11 @@ body {
     gap: 8px;
 }
 
-/* Clean Dashboard Toggle Buttons */
+/* Dashboard Segmented badges */
 .toggle-badge {
-    font-size: 10.5px;
-    font-weight: 500;
-    padding: 6px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 5px 10px;
     border-radius: 6px;
     background: transparent;
     border: 1px solid var(--card-border);
@@ -215,27 +135,20 @@ body {
     transition: all 0.2s ease;
 }
 
-/* Active Segmented highlights */
 .toggle-badge.active {
     background: rgba(37, 99, 235, 0.08);
-    border-color: rgba(37, 99, 235, 0.3);
-    color: #93c5fd;
+    border-color: rgba(37, 99, 235, 0.25);
+    color: var(--accent-sky);
 }
 
 .toggle-badge.active .toggle-indicator {
     background-color: var(--accent-sky);
-    box-shadow: 0 0 4px var(--accent-sky);
 }
 
-/* Model Toggle Badge */
 #btn-toggle-model {
     font-family: 'Fira Code', monospace;
     font-size: 9.5px;
     background: rgba(255, 255, 255, 0.01);
-}
-
-#btn-toggle-model:hover {
-    border-color: var(--card-border-active);
 }
 
 .toolbar-right {
@@ -258,17 +171,17 @@ body {
 
 .icon-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .icon-btn:active {
     transform: scale(0.96);
 }
 
-/* Editor Grid Structure */
+/* Split Area fills remaining viewport height */
 .editor-workspace-split {
     display: flex;
-    height: 480px;
+    flex: 1;
     width: 100%;
     position: relative;
     overflow: hidden;
@@ -280,7 +193,7 @@ body {
     height: 100%;
 }
 
-/* Layout Mirror Text Matching Geometry (CRITICAL) */
+/* Caret Overlay Text synchronization */
 .editor-mirrored-backdrop,
 #editor-textarea {
     position: absolute;
@@ -327,15 +240,11 @@ body {
     caret-color: var(--accent-sky);
 }
 
-/* Ghost Suggestion Text styling */
 .suggestion-ghost {
     color: var(--text-ghost);
     user-select: none;
     pointer-events: none;
     font-style: italic;
-    background: transparent;
-    -webkit-text-fill-color: initial;
-    animation: none; /* Removed blinking for distraction-free typing */
 }
 
 /* Markdown Split Preview Pane */
@@ -350,7 +259,6 @@ body {
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-left-width 0.3s ease;
 }
 
-/* When split mode is active */
 .markdown-active .editor-markdown-preview-pane {
     width: 50%;
     border-left-width: 1px;
@@ -376,7 +284,6 @@ body {
     color: var(--text-secondary);
 }
 
-/* Premium Standard Markdown Layout Styles */
 .markdown-content h1, 
 .markdown-content h2, 
 .markdown-content h3 {
@@ -447,19 +354,26 @@ body {
     background: rgba(255, 255, 255, 0.16);
 }
 
-/* Editor Footer */
+/* Unified Editor Footer (Integrated layout hints) */
 .editor-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 18px;
-    background: rgba(0, 0, 0, 0.1);
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.15);
     border-top: 1px solid var(--card-border);
     font-size: 11px;
     color: var(--text-muted);
+    height: 38px;
 }
 
 .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-right {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -473,49 +387,33 @@ body {
     color: var(--card-border);
 }
 
-.autocomplete-state-indicator {
+/* Shortcut Tips styled in Footer right */
+.footer-right .tip {
+    font-size: 10.5px;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
-.indicator-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: var(--text-muted);
-    transition: all 0.2s ease;
-}
-
-.autocomplete-state-indicator.state-idle .indicator-dot {
-    background-color: var(--text-muted);
-}
-
-.autocomplete-state-indicator.state-fetching .indicator-dot {
-    background-color: var(--accent-sky);
-    animation: blink 0.8s infinite alternate;
-}
-
-.autocomplete-state-indicator.state-ready .indicator-dot {
-    background-color: var(--accent-success);
-}
-
-.autocomplete-state-indicator.state-ready .indicator-message {
+.footer-right .key {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-bottom: 2px solid var(--card-border-active);
     color: var(--text-secondary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-family: var(--font-editor);
+    text-transform: uppercase;
 }
 
-.indicator-message {
-    font-weight: 500;
-}
 
-
-/* --- PROFESSIONAL CHAT SIDEBAR --- */
+/* --- INTEGRATED FULL-HEIGHT SIDEBAR CHAT --- */
 .chat-glass-card {
     background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 0; /* Razor pane side margins */
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -523,18 +421,19 @@ body {
 }
 
 .chat-header {
-    padding: 14px 18px;
-    background: rgba(0, 0, 0, 0.15);
+    padding: 14px 20px;
+    background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid var(--card-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    height: 52px;
 }
 
 .chat-header-title {
     font-family: var(--font-heading);
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
@@ -556,11 +455,11 @@ body {
     background: rgba(255, 255, 255, 0.03);
 }
 
-/* Message feed area */
+/* Scroll messages view */
 .chat-messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 18px 16px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -586,7 +485,7 @@ body {
     letter-spacing: 0.8px;
 }
 
-/* Claude / Notion style chat bubble cards */
+/* Claude / Notion minimal card layouts */
 .assistant-message {
     align-self: flex-start;
     background: rgba(255, 255, 255, 0.02);
@@ -610,7 +509,7 @@ body {
     align-self: flex-end;
 }
 
-/* Typing bubble dots */
+/* Typing indicator */
 .typing-indicator {
     display: flex;
     gap: 4px;
@@ -626,9 +525,9 @@ body {
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* Chat input bar */
+/* Chat Input Bar */
 .chat-input-wrapper {
-    padding: 14px;
+    padding: 14px 20px;
     background: rgba(0, 0, 0, 0.15);
     border-top: 1px solid var(--card-border);
     display: flex;
@@ -649,6 +548,7 @@ body {
     outline: none;
     line-height: 1.45;
     transition: all 0.15s ease;
+    max-height: 120px;
 }
 
 #chat-textarea:focus {
@@ -679,47 +579,7 @@ body {
     transform: scale(0.96);
 }
 
-
-/* Footer shortcuts */
-.app-footer {
-    display: flex;
-    justify-content: center;
-    margin-top: 8px;
-}
-
-.shortcut-tips {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.tip {
-    font-size: 11px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.key {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--card-border);
-    border-bottom: 2px solid var(--card-border-active);
-    color: var(--text-secondary);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 9px;
-    font-family: var(--font-editor);
-    text-transform: uppercase;
-}
-
-/* Common Animations */
-@keyframes blink {
-    0% { opacity: 0.4; }
-    100% { opacity: 1; }
-}
-
+/* Keyframe animations */
 @keyframes slide-in {
     0% { opacity: 0; transform: translateY(6px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -730,16 +590,19 @@ body {
     50% { transform: translateY(-3px); }
 }
 
-/* Responsive workspace adjustment */
+/* Responsive workspace layouts */
 @media (max-width: 960px) {
     .workspace-wrapper {
         flex-direction: column;
     }
     .chat-sidebar-section {
         width: 100%;
-        height: 380px;
+        height: 40%;
+    }
+    body {
+        overflow-y: auto;
     }
     .app-container {
-        padding: 16px;
+        height: auto;
     }
 }
