@@ -1,0 +1,21 @@
+# Secrets and Environment Variables
+.env
+
+# Python Environment
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and System Files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
