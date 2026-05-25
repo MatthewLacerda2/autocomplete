@@ -393,8 +393,8 @@ async function sendChatMessage() {
             if (data.updated_text !== null && data.updated_text !== undefined) {
                 // Flash the card border briefly to visually show an update occurred
                 const card = document.getElementById('editor-card');
-                card.style.borderColor = 'var(--accent-cyan)';
-                card.style.boxShadow = '0 12px 40px rgba(6, 182, 212, 0.15)';
+                card.style.borderColor = 'var(--accent-blue)';
+                card.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-blue)';
                 
                 // Update editor contents
                 textarea.value = data.updated_text;
