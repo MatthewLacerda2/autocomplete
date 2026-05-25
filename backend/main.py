@@ -48,6 +48,7 @@ except Exception as e:
 # --- Autocomplete Schemas ---
 class CompleteRequest(BaseModel):
     text_before_cursor: str
+    text_after_cursor: Optional[str] = None
     model: Optional[str] = "gemini-3.1-flash-lite"
     chat_context: Optional[str] = None
 
@@ -67,17 +68,22 @@ class ChatRequest(BaseModel):
     model: str
     chat_context: Optional[str] = None
 
+class EditBlock(BaseModel):
+    start_line: int = Field(description="The 1-indexed line number where the edit block starts (inclusive).")
+    end_line: int = Field(description="The 1-indexed line number where the edit block ends (inclusive).")
+    replacement_content: str = Field(description="The replacement text for this line range. Can be empty string to delete lines.")
+
 class AssistantResponse(BaseModel):
     chat_response: str = Field(
         description="A friendly, helpful, and concise conversational response to the user. "
                     "Briefly explain what changes or additions were made to the document (if any)."
     )
-    updated_text: Optional[str] = Field(
+    edits: Optional[List[EditBlock]] = Field(
         None,
-        description="The complete, updated text for the editor. If the user request asks to write, "
-                    "rewrite, edit, structure, format, or append text inside the document, you MUST "
-                    "output the entire updated document text in this field. If no document changes are "
-                    "necessary or requested (e.g., general brainstorming), leave this field as null or omit it."
+        description="A list of block-level changes to apply to the text editor. "
+                    "Only include the blocks that actually need modification. "
+                    "If no document changes are necessary or requested (e.g., general brainstorming), "
+                    "leave this field as null or omit it."
     )
     updated_context: Optional[str] = Field(
         None,
@@ -137,12 +143,33 @@ async def get_autocomplete(request: CompleteRequest):
             f"Ensure your autocomplete suggestion strictly aligns with this structure, tone, and content goal."
         )
 
+    # Construct structured FIM prompt
+    prompt_elements = []
+    prompt_elements.append("=== TEXT BEFORE CURSOR ===\n")
+    prompt_elements.append(text)
+    prompt_elements.append("\n==========================\n\n")
+    
+    if request.text_after_cursor and request.text_after_cursor.strip():
+        prompt_elements.append("=== TEXT AFTER CURSOR ===\n")
+        prompt_elements.append(request.text_after_cursor)
+        prompt_elements.append("\n=========================\n\n")
+        
+        system_instruction += (
+            "\n\nCRITICAL FILL-IN-THE-MIDDLE (FIM) RULE:\n"
+            "Your autocomplete suggestion MUST fit seamlessly in the gap between 'TEXT BEFORE CURSOR' and 'TEXT AFTER CURSOR'.\n"
+            "Do NOT repeat any text from the 'TEXT AFTER CURSOR'. Provide ONLY the suffix that immediately completes the "
+            "text before the cursor and transitions naturally into the text after the cursor."
+        )
+        
+    prompt_elements.append("Generate the immediate next suffix completion:")
+    full_prompt = "".join(prompt_elements)
+
     try:
         logger.info(f"Generating completion using {model_to_use} for prompt length: {len(text)}")
         
         response = client.models.generate_content(
             model=model_to_use,
-            contents=text,
+            contents=full_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 temperature=0.1,  # Low temperature for highly deterministic completions
@@ -200,18 +227,21 @@ async def chat_assistant(request: ChatRequest):
     system_instruction = (
         "You are Aura Write Assistant, an expert writing companion and editor.\n"
         "Your task is to help the user write, format, restructure, outline, or expand their text.\n"
-        "You communicate via a conversational chat interface, can update the text editor, and can also maintain "
+        "You communicate via a conversational chat interface, can update the text editor using block edits, and can also maintain "
         "and update a structural metadata context ('what this document is about / its structure') that guides "
         "real-time autocompletions.\n\n"
         
         "Your response MUST strictly conform to the JSON schema provided:\n"
         "1. `chat_response`: A friendly, concise conversational response. Reply conversationally, "
         "explain what changes you made, brainstorm with the user, or answer questions.\n"
-        "2. `updated_text`: The COMPLETE, newly updated contents of the text editor. Follow these rules:\n"
-        "   - If the user asks you to write, edit, format, or restructure text, you MUST output the entire updated document text in this field.\n"
-        "   - The user is often just brainstorming or asking general questions, in which case you DO NOT have to update the editor. "
-        "If no changes to the text are required, leave `updated_text` as null or omit it.\n"
-        "   - DO NOT wrap `updated_text` in markdown code blocks. Output raw text exactly as it should appear in the editor.\n"
+        "2. `edits`: An optional list of line-level block edits to apply to the text editor. Follow these rules:\n"
+        "   - The document text is provided below with 1-indexed line numbers.\n"
+        "   - To modify a block of lines: specify the `start_line` and `end_line` (inclusive, 1-indexed) and provide the exact `replacement_content` for that range.\n"
+        "   - To delete a block of lines: specify `start_line` and `end_line` and set `replacement_content` to an empty string (\"\").\n"
+        "   - To insert text at the top of an empty editor: use `start_line = 1`, `end_line = 1` and specify the content.\n"
+        "   - CRITICAL: Omit untouched lines entirely! Only return `edits` for line blocks that actually need modification. "
+        "This is essential for token efficiency. If no text changes are requested or necessary (e.g. general brainstorming), "
+        "leave `edits` as null or omit it entirely.\n"
         "3. `updated_context`: The updated structure, outline, style, or about context of the document. Follow these rules:\n"
         "   - If the user explains the document's structure, outline, or what the document is about, or if you infer a specific "
         "structure or purpose from the user's request and text, you MUST output a concise structural description in this field.\n"
@@ -226,10 +256,15 @@ async def chat_assistant(request: ChatRequest):
     # Construct the contextual chat prompt
     prompt_elements = []
     
-    # 1. State the current document context
-    prompt_elements.append("=== CURRENT DOCUMENT TEXT IN EDITOR ===\n")
-    prompt_elements.append(request.current_text if request.current_text.strip() else "(The editor is currently empty.)")
-    prompt_elements.append("\n========================================\n\n")
+    # 1. State the current document context with line numbers
+    prompt_elements.append("=== CURRENT DOCUMENT TEXT IN EDITOR (WITH LINE NUMBERS) ===\n")
+    if request.current_text.strip():
+        lines = request.current_text.splitlines()
+        for idx, line in enumerate(lines, 1):
+            prompt_elements.append(f"{idx}: {line}\n")
+    else:
+        prompt_elements.append("(The editor is currently empty.)\n")
+    prompt_elements.append("==========================================================\n\n")
 
     # 2. Add current structure/context
     prompt_elements.append("=== CURRENT DOCUMENT STRUCTURE & ABOUT CONTEXT ===\n")

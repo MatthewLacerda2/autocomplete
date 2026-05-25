@@ -24,6 +24,7 @@ const editorWorkspaceSplit = document.querySelector('.editor-workspace-split');
 const chatMessagesContainer = document.getElementById('chat-messages');
 const chatTextarea = document.getElementById('chat-textarea');
 const btnSendChat = document.getElementById('btn-send-chat');
+const btnClearChat = document.getElementById('btn-clear-chat');
 
 // Application State
 let activeSuggestion = '';
@@ -44,6 +45,55 @@ let chatHistory = []; // stores conversation context: { role: 'user' | 'model', 
 let documents = []; // Array of { id: string, text: string, chatHistory: Array, chatContext: string }
 let activeDocId = 'new'; // 'new' or specific doc ID
 let currentChatContext = ''; // structure & about of active document
+
+// Slicing and Splicing Utility Helpers for Token Efficiency
+function getWordsBeforeCursor(text, cursorIndex, limit = 200) {
+    const sliced = text.substring(0, cursorIndex);
+    const tokens = sliced.split(/(\s+)/);
+    let wordCount = 0;
+    let index = tokens.length - 1;
+    while (index >= 0 && wordCount < limit) {
+        if (tokens[index].trim().length > 0) {
+            wordCount++;
+        }
+        index--;
+    }
+    return tokens.slice(index + 1).join('');
+}
+
+function getWordsAfterCursor(text, cursorIndex, limit = 200) {
+    const sliced = text.substring(cursorIndex);
+    const tokens = sliced.split(/(\s+)/);
+    let wordCount = 0;
+    let index = 0;
+    while (index < tokens.length && wordCount < limit) {
+        if (tokens[index].trim().length > 0) {
+            wordCount++;
+        }
+        index++;
+    }
+    return tokens.slice(0, index).join('');
+}
+
+function applyBlockEdits(originalText, edits) {
+    if (!edits || edits.length === 0) return originalText;
+    const lines = originalText.split('\n');
+    
+    // Sort edits in descending order of start_line to prevent line offset shifting
+    const sortedEdits = [...edits].sort((a, b) => b.start_line - a.start_line);
+    
+    sortedEdits.forEach(edit => {
+        const start = Math.max(1, edit.start_line) - 1; // Convert to 0-indexed
+        const end = Math.min(lines.length, edit.end_line); // inclusive
+        
+        const replacementLines = edit.replacement_content.split('\n');
+        const count = Math.max(0, end - start);
+        
+        lines.splice(start, count, ...replacementLines);
+    });
+    
+    return lines.join('\n');
+}
 
 // LocalStorage Persistence Helpers
 function loadDocumentsFromStorage() {
@@ -115,8 +165,9 @@ function updateContextPanelUI() {
     
     if (currentChatContext && currentChatContext.trim().length > 0) {
         body.textContent = currentChatContext.trim();
+        panel.style.display = 'block';
     } else {
-        body.textContent = 'No structure or context defined yet. Chat with Aura to outline your document, and the autocomplete will automatically follow it.';
+        panel.style.display = 'none';
     }
 }
 
@@ -406,13 +457,19 @@ async function fetchAutocompleteSuggestion() {
         return;
     }
     
-    const textBeforeCursor = textarea.value;
+    const fullText = textarea.value;
+    const cursorIndex = textarea.selectionStart;
+    const textBeforeCursor = fullText.substring(0, cursorIndex);
     
     if (!textBeforeCursor.trim()) {
         clearSuggestion();
         setAutocompleteState('idle', 'Ready');
         return;
     }
+    
+    // Slice a 200-word window before and after the cursor to optimize input tokens
+    const slicedBefore = getWordsBeforeCursor(fullText, cursorIndex, 200);
+    const slicedAfter = getWordsAfterCursor(fullText, cursorIndex, 200);
     
     isFetchingAutocomplete = true;
     setAutocompleteState('fetching', 'Fetching...');
@@ -424,7 +481,8 @@ async function fetchAutocompleteSuggestion() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ 
-                text_before_cursor: textBeforeCursor,
+                text_before_cursor: slicedBefore,
+                text_after_cursor: slicedAfter,
                 model: activeModel,
                 chat_context: currentChatContext
             })
@@ -589,23 +647,27 @@ async function sendChatMessage() {
                 }
             }
             
-            // CRITICAL: Dynamic text update from Chatbot
-            if (data.updated_text !== null && data.updated_text !== undefined) {
+            // CRITICAL: Dynamic text update from Chatbot via Block Edits
+            if (data.edits !== null && data.edits !== undefined && data.edits.length > 0) {
                 // Flash the card border briefly to visually show an update occurred
                 const card = document.getElementById('editor-card');
-                card.style.borderColor = 'var(--accent-blue)';
-                card.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-blue)';
+                if (card) {
+                    card.style.borderColor = 'var(--accent-blue)';
+                    card.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-blue)';
+                }
                 
-                // Update editor contents
-                textarea.value = data.updated_text;
+                // Update editor contents by applying block edits
+                textarea.value = applyBlockEdits(textarea.value, data.edits);
                 
                 // Reset suggestion state since text changed
                 clearSuggestion();
                 renderBackdrop();
                 
                 setTimeout(() => {
-                    card.style.borderColor = '';
-                    card.style.boxShadow = '';
+                    if (card) {
+                        card.style.borderColor = '';
+                        card.style.boxShadow = '';
+                    }
                 }, 1000);
             }
             
@@ -765,6 +827,17 @@ chatTextarea.addEventListener('keydown', (e) => {
         sendChatMessage();
     }
 });
+
+// Reset Chat History (messages only, preserves active structure context)
+if (btnClearChat) {
+    btnClearChat.addEventListener('click', () => {
+        chatHistory = [];
+        chatMessagesContainer.innerHTML = '';
+        
+        // Auto-save document with empty chat history but preserving currentChatContext
+        updateActiveDocument();
+    });
+}
 
 // Document Selector interaction listeners
 const selectDocumentDropdown = document.getElementById('select-document');
