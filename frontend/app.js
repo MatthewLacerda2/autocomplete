@@ -24,7 +24,6 @@ const editorWorkspaceSplit = document.querySelector('.editor-workspace-split');
 const chatMessagesContainer = document.getElementById('chat-messages');
 const chatTextarea = document.getElementById('chat-textarea');
 const btnSendChat = document.getElementById('btn-send-chat');
-const btnClearChat = document.getElementById('btn-clear-chat');
 
 // Application State
 let activeSuggestion = '';
@@ -40,6 +39,186 @@ let isFetchingChat = false;
 let activeModel = 'gemini-3.1-flash-lite';
 let isMarkdownPreviewActive = false;
 let chatHistory = []; // stores conversation context: { role: 'user' | 'model', content: string }
+
+// Document management state variables
+let documents = []; // Array of { id: string, text: string, chatHistory: Array, chatContext: string }
+let activeDocId = 'new'; // 'new' or specific doc ID
+let currentChatContext = ''; // structure & about of active document
+
+// LocalStorage Persistence Helpers
+function loadDocumentsFromStorage() {
+    try {
+        const stored = localStorage.getItem('aura_write_documents');
+        if (stored) {
+            documents = JSON.parse(stored);
+        } else {
+            documents = [];
+        }
+        
+        const storedActiveId = localStorage.getItem('aura_write_active_doc_id');
+        if (storedActiveId && documents.some(d => d.id === storedActiveId)) {
+            activeDocId = storedActiveId;
+        } else {
+            activeDocId = 'new';
+        }
+    } catch (e) {
+        console.error('Failed to load documents from localStorage:', e);
+        documents = [];
+        activeDocId = 'new';
+    }
+}
+
+function saveDocumentsToStorage() {
+    try {
+        localStorage.setItem('aura_write_documents', JSON.stringify(documents));
+        localStorage.setItem('aura_write_active_doc_id', activeDocId);
+    } catch (e) {
+        console.error('Failed to save documents to localStorage:', e);
+    }
+}
+
+function getDocumentName(doc) {
+    if (doc.text && doc.text.trim().length > 0) {
+        const firstLine = doc.text.trim().split('\n')[0];
+        return firstLine.substring(0, 25) + (firstLine.length > 25 ? '...' : '');
+    }
+    
+    if (doc.chatHistory && doc.chatHistory.length > 0) {
+        const firstUserMsg = doc.chatHistory.find(m => m.role === 'user');
+        if (firstUserMsg) {
+            const text = firstUserMsg.content.trim();
+            return text.substring(0, 25) + (text.length > 25 ? '...' : '');
+        }
+    }
+    
+    return 'Untitled Document';
+}
+
+function renderDocumentDropdown() {
+    const select = document.getElementById('select-document');
+    if (!select) return;
+    
+    let html = `<option value="new" ${activeDocId === 'new' ? 'selected' : ''}>✦ New Document</option>`;
+    
+    documents.forEach(doc => {
+        const name = getDocumentName(doc);
+        html += `<option value="${doc.id}" ${activeDocId === doc.id ? 'selected' : ''}>📄 ${name}</option>`;
+    });
+    
+    select.innerHTML = html;
+}
+
+function updateContextPanelUI() {
+    const panel = document.getElementById('chat-context-panel');
+    const body = document.getElementById('context-body');
+    if (!panel || !body) return;
+    
+    if (currentChatContext && currentChatContext.trim().length > 0) {
+        body.textContent = currentChatContext.trim();
+    } else {
+        body.textContent = 'No structure or context defined yet. Chat with Aura to outline your document, and the autocomplete will automatically follow it.';
+    }
+}
+
+function updateActiveDocument() {
+    const currentText = textarea.value;
+    const hasText = currentText.trim().length > 0;
+    const hasChat = chatHistory.length > 0;
+    
+    if (!hasText && !hasChat) {
+        if (activeDocId !== 'new') {
+            const index = documents.findIndex(d => d.id === activeDocId);
+            if (index !== -1) {
+                documents.splice(index, 1);
+                activeDocId = 'new';
+                saveDocumentsToStorage();
+                renderDocumentDropdown();
+                resetChatUI();
+                updateContextPanelUI();
+            }
+        }
+        return;
+    }
+    
+    if (activeDocId === 'new') {
+        const newDocId = `doc_${Date.now()}`;
+        const newDoc = {
+            id: newDocId,
+            text: currentText,
+            chatHistory: [...chatHistory],
+            chatContext: currentChatContext
+        };
+        documents.push(newDoc);
+        activeDocId = newDocId;
+    } else {
+        const doc = documents.find(d => d.id === activeDocId);
+        if (doc) {
+            doc.text = currentText;
+            doc.chatHistory = [...chatHistory];
+            doc.chatContext = currentChatContext;
+        } else {
+            const newDoc = {
+                id: activeDocId,
+                text: currentText,
+                chatHistory: [...chatHistory],
+                chatContext: currentChatContext
+            };
+            documents.push(newDoc);
+        }
+    }
+    
+    saveDocumentsToStorage();
+    renderDocumentDropdown();
+}
+
+function resetChatUI() {
+    chatMessagesContainer.innerHTML = '';
+    chatMessagesContainer.scrollTop = 0;
+}
+
+function rebuildChatUI() {
+    chatMessagesContainer.innerHTML = '';
+    
+    if (chatHistory.length === 0) {
+        resetChatUI();
+        return;
+    }
+    
+    chatHistory.forEach(msg => {
+        appendChatMessage(msg.role, msg.content);
+    });
+}
+
+async function handleDocumentChange(newId) {
+    clearSuggestion();
+    
+    if (newId === 'new') {
+        activeDocId = 'new';
+        textarea.value = '';
+        chatHistory = [];
+        currentChatContext = '';
+        
+        resetChatUI();
+        updateContextPanelUI();
+        renderBackdrop();
+        textarea.focus();
+    } else {
+        const doc = documents.find(d => d.id === newId);
+        if (doc) {
+            activeDocId = newId;
+            textarea.value = doc.text || '';
+            chatHistory = doc.chatHistory || [];
+            currentChatContext = doc.chatContext || '';
+            
+            rebuildChatUI();
+            updateContextPanelUI();
+            renderBackdrop();
+            textarea.focus();
+        }
+    }
+    
+    localStorage.setItem('aura_write_active_doc_id', activeDocId);
+}
 
 // 1. Connection check and Status
 async function checkBackendHealth() {
@@ -246,7 +425,8 @@ async function fetchAutocompleteSuggestion() {
             },
             body: JSON.stringify({ 
                 text_before_cursor: textBeforeCursor,
-                model: activeModel
+                model: activeModel,
+                chat_context: currentChatContext
             })
         });
         
@@ -371,7 +551,8 @@ async function sendChatMessage() {
                 message: message,
                 current_text: textarea.value,
                 history: chatHistory,
-                model: activeModel
+                model: activeModel,
+                chat_context: currentChatContext
             })
         });
         
@@ -390,6 +571,22 @@ async function sendChatMessage() {
             // Limit history to last 16 messages to keep payloads optimized
             if (chatHistory.length > 16) {
                 chatHistory.splice(0, 2);
+            }
+            
+            // CRITICAL: Dynamic structure context update from Chatbot
+            if (data.updated_context !== null && data.updated_context !== undefined) {
+                currentChatContext = data.updated_context;
+                updateContextPanelUI();
+                
+                const panel = document.getElementById('chat-context-panel');
+                if (panel) {
+                    panel.style.borderColor = 'var(--accent-cyan)';
+                    panel.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.25)';
+                    setTimeout(() => {
+                        panel.style.borderColor = '';
+                        panel.style.boxShadow = '';
+                    }, 1200);
+                }
             }
             
             // CRITICAL: Dynamic text update from Chatbot
@@ -411,6 +608,9 @@ async function sendChatMessage() {
                     card.style.boxShadow = '';
                 }, 1000);
             }
+            
+            // Save active document state (which handles creation, updates, and naming)
+            updateActiveDocument();
         } else {
             appendChatMessage('model', 'Sorry, I encountered an error communicating with the chat model.');
         }
@@ -450,6 +650,9 @@ textarea.addEventListener('input', () => {
         
         renderBackdrop();
         
+        // Update documents array and save to local storage
+        updateActiveDocument();
+        
         // Prevent launching new API autocomplete calls
         clearTimeout(debounceTimeout);
         return;
@@ -462,6 +665,9 @@ textarea.addEventListener('input', () => {
     
     setAutocompleteState('idle', 'Typing...');
     renderBackdrop();
+    
+    // Update documents array and save to local storage
+    updateActiveDocument();
     
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
@@ -498,6 +704,9 @@ textarea.addEventListener('keydown', (e) => {
             
             renderBackdrop();
             
+            // Update document contents inside storage
+            updateActiveDocument();
+            
             setTimeout(() => {
                 setAutocompleteState('idle', 'Ready');
             }, 1000);
@@ -523,6 +732,10 @@ btnClear.addEventListener('click', () => {
         textarea.value = '';
         clearSuggestion();
         setAutocompleteState('idle', 'Ready');
+        
+        // Auto-save deletes document if chat history is also empty
+        updateActiveDocument();
+        
         textarea.focus();
     }
 });
@@ -553,17 +766,39 @@ chatTextarea.addEventListener('keydown', (e) => {
     }
 });
 
-// Reset Chat History
-btnClearChat.addEventListener('click', () => {
-    chatHistory = [];
-    chatMessagesContainer.innerHTML = '';
-    appendChatMessage('model', "Chat history has been reset! How can I assist you with your document now?");
-});
+// Document Selector interaction listeners
+const selectDocumentDropdown = document.getElementById('select-document');
+if (selectDocumentDropdown) {
+    selectDocumentDropdown.addEventListener('change', (e) => {
+        handleDocumentChange(e.target.value);
+    });
+}
+
+// Clear Context button listener
+const btnClearContext = document.getElementById('btn-clear-context');
+if (btnClearContext) {
+    btnClearContext.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear the structure context for this document?')) {
+            currentChatContext = '';
+            updateContextPanelUI();
+            updateActiveDocument();
+        }
+    });
+}
 
 
 // 8. Initialization on page load
+loadDocumentsFromStorage();
+renderDocumentDropdown();
+
+// Load the active document if there is one, otherwise clear
+if (activeDocId !== 'new') {
+    handleDocumentChange(activeDocId);
+} else {
+    // Re-render empty backdrop
+    renderBackdrop();
+    updateContextPanelUI();
+}
+
 checkBackendHealth();
 setInterval(checkBackendHealth, 8000); // Heartbeat check
-
-// First render to compute empty statistics
-renderBackdrop();

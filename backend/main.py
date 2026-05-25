@@ -49,6 +49,7 @@ except Exception as e:
 class CompleteRequest(BaseModel):
     text_before_cursor: str
     model: Optional[str] = "gemini-3.1-flash-lite"
+    chat_context: Optional[str] = None
 
 class CompleteResponse(BaseModel):
     completion: str
@@ -64,6 +65,7 @@ class ChatRequest(BaseModel):
     current_text: str
     history: List[ChatMessage]
     model: str
+    chat_context: Optional[str] = None
 
 class AssistantResponse(BaseModel):
     chat_response: str = Field(
@@ -75,7 +77,16 @@ class AssistantResponse(BaseModel):
         description="The complete, updated text for the editor. If the user request asks to write, "
                     "rewrite, edit, structure, format, or append text inside the document, you MUST "
                     "output the entire updated document text in this field. If no document changes are "
-                    "necessary or requested (e.g., standard conversation), leave this field as null or omit it."
+                    "necessary or requested (e.g., general brainstorming), leave this field as null or omit it."
+    )
+    updated_context: Optional[str] = Field(
+        None,
+        description="The updated structure, outline, style, or about context of the document. "
+                    "If the user explains the document's structure, outline, or what the document is about, "
+                    "or if you infer it from the user's instructions or conversation, you MUST update "
+                    "this field with a concise summary/structure of the document. "
+                    "If there is no change or update to the structure/context, or if it is not relevant, "
+                    "leave this field as null or omit it to be token efficient."
     )
 
 
@@ -117,6 +128,14 @@ async def get_autocomplete(request: CompleteRequest):
         "7. If the user's text ends mid-word, complete that word first.\n"
         "8. If no logical continuation or completion exists, return absolutely nothing (an empty string)."
     )
+
+    if request.chat_context and request.chat_context.strip():
+        system_instruction += (
+            f"\n\nCRITICAL CONTEXT FOR THIS DOCUMENT:\n"
+            f"The user has defined the following structure or context for the document:\n"
+            f"\"\"\"\n{request.chat_context.strip()}\n\"\"\"\n"
+            f"Ensure your autocomplete suggestion strictly aligns with this structure, tone, and content goal."
+        )
 
     try:
         logger.info(f"Generating completion using {model_to_use} for prompt length: {len(text)}")
@@ -181,18 +200,27 @@ async def chat_assistant(request: ChatRequest):
     system_instruction = (
         "You are Aura Write Assistant, an expert writing companion and editor.\n"
         "Your task is to help the user write, format, restructure, outline, or expand their text.\n"
-        "You communicate via a conversational chat interface and can also directly update the text editor.\n\n"
+        "You communicate via a conversational chat interface, can update the text editor, and can also maintain "
+        "and update a structural metadata context ('what this document is about / its structure') that guides "
+        "real-time autocompletions.\n\n"
+        
         "Your response MUST strictly conform to the JSON schema provided:\n"
-        "1. `chat_response`: Explain friendly and concisely what changes you made, or reply conversationally to their prompt.\n"
+        "1. `chat_response`: A friendly, concise conversational response. Reply conversationally, "
+        "explain what changes you made, brainstorm with the user, or answer questions.\n"
         "2. `updated_text`: The COMPLETE, newly updated contents of the text editor. Follow these rules:\n"
-        "   - If the user asks you to write structure, add questions, draft essays, fix spelling/grammar, format, "
-        "or rewrite the text, you MUST output the entire updated document in this field.\n"
-        "   - If the user gives instructions that apply to the current editor text, take the current text and modify it.\n"
-        "   - DO NOT wrap `updated_text` in markdown block formatting (like ```markdown). Output it as plain raw text, "
-        "exactly as it should appear in the editor.\n"
-        "   - If the user request is a general question or doesn't require modifying the document text (e.g. 'explain math rules'), "
-        "leave `updated_text` null or omit it entirely.\n\n"
-        "Remember, when modifying, you must replace the ENTIRE editor text with the final state, so do not truncate or use placeholders."
+        "   - If the user asks you to write, edit, format, or restructure text, you MUST output the entire updated document text in this field.\n"
+        "   - The user is often just brainstorming or asking general questions, in which case you DO NOT have to update the editor. "
+        "If no changes to the text are required, leave `updated_text` as null or omit it.\n"
+        "   - DO NOT wrap `updated_text` in markdown code blocks. Output raw text exactly as it should appear in the editor.\n"
+        "3. `updated_context`: The updated structure, outline, style, or about context of the document. Follow these rules:\n"
+        "   - If the user explains the document's structure, outline, or what the document is about, or if you infer a specific "
+        "structure or purpose from the user's request and text, you MUST output a concise structural description in this field.\n"
+        "   - If the current structure/context doesn't change, or if the user is just chatting/brainstorming without affecting the document's "
+        "overall structure or about, you MUST leave `updated_context` as null or omit it. This is critical for token efficiency.\n\n"
+        
+        "CRITICAL BEHAVIOR NOTE: Obviously, you do not have to answer every chat prompt with a change to the text editor. "
+        "Sometimes the user is just brainstorming or asking a question. Use your judgment to only modify the text or the structure context "
+        "when requested or highly appropriate."
     )
 
     # Construct the contextual chat prompt
@@ -203,7 +231,12 @@ async def chat_assistant(request: ChatRequest):
     prompt_elements.append(request.current_text if request.current_text.strip() else "(The editor is currently empty.)")
     prompt_elements.append("\n========================================\n\n")
 
-    # 2. Add history context
+    # 2. Add current structure/context
+    prompt_elements.append("=== CURRENT DOCUMENT STRUCTURE & ABOUT CONTEXT ===\n")
+    prompt_elements.append(request.chat_context if request.chat_context and request.chat_context.strip() else "(No structure/context defined yet.)")
+    prompt_elements.append("\n==================================================\n\n")
+
+    # 3. Add history context
     if request.history:
         prompt_elements.append("=== CHAT HISTORY ===\n")
         for msg in request.history:
@@ -211,7 +244,7 @@ async def chat_assistant(request: ChatRequest):
             prompt_elements.append(f"{role_label}: {msg.content}\n")
         prompt_elements.append("====================\n\n")
 
-    # 3. Add latest user request
+    # 4. Add latest user request
     prompt_elements.append(f"User's Latest Request: {request.message}\n")
     prompt_elements.append("Please generate your response matching the required schema.")
 

@@ -606,3 +606,122 @@ body {
         height: auto;
     }
 }
+
+/* Premium Document Selector styles */
+.document-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 2px 6px 2px 8px;
+    transition: all 0.15s ease;
+    margin-left: 4px;
+}
+
+.document-selector-container:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--card-border-active);
+}
+
+.document-selector-container:focus-within {
+    border-color: var(--accent-sky);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.doc-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+.document-select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    min-width: 110px;
+    max-width: 180px;
+    padding: 3px 18px 3px 0;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 10px;
+}
+
+.document-select option {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 11px;
+    padding: 8px;
+    font-weight: 500;
+}
+
+/* Document Structure & Context Panel inside Sidebar */
+.chat-context-panel {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--card-border);
+    padding: 12px 16px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.context-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.context-panel-title {
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 9px;
+    font-family: var(--font-body);
+}
+
+.context-clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 9.5px;
+    transition: color 0.15s ease;
+    font-family: var(--font-body);
+}
+
+.context-clear-btn:hover {
+    color: var(--text-primary);
+}
+
+.context-panel-body {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-family: var(--font-body);
+    font-size: 11px;
+    white-space: pre-wrap;
+    max-height: 72px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Context Panel */
+.context-panel-body::-webkit-scrollbar {
+    width: 4px;
+}
+.context-panel-body::-webkit-scrollbar-thumb {
+    background: var(--card-border);
+    border-radius: 2px;
+}
+.context-panel-body::-webkit-scrollbar-thumb:hover {
+    background: var(--card-border-active);
+}

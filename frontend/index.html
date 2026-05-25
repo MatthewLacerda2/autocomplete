@@ -33,6 +33,14 @@
                             <button class="toggle-badge model-active" id="btn-toggle-model" title="Click to switch models">
                                 🤖 <span id="current-model-label">gemini-3.1-flash-lite</span>
                             </button>
+                            
+                            <!-- Premium Document Selector -->
+                            <div class="document-selector-container">
+                                <span class="doc-label">DOC:</span>
+                                <select id="select-document" class="document-select" title="Switch between active documents">
+                                    <option value="new">✦ New Document</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="toolbar-right">
                             <button class="icon-btn" id="btn-clear" title="Clear text">
@@ -84,22 +92,19 @@
             <!-- Right Side: Sidebar Chatbot Section -->
             <aside class="chat-sidebar-section">
                 <div class="chat-glass-card">
-                    <div class="chat-header">
-                        <div class="chat-header-title">✦ Aura Assistant</div>
-                        <button class="chat-reset-btn" id="btn-clear-chat" title="Reset chat history">Reset Chat</button>
+                    <!-- Document Structure & Context Panel -->
+                    <div class="chat-context-panel" id="chat-context-panel">
+                        <div class="context-panel-header">
+                            <span class="context-panel-title">📋 Document Structure & Context</span>
+                            <button class="context-clear-btn" id="btn-clear-context" title="Clear structure context">Clear</button>
+                        </div>
+                        <div class="context-panel-body" id="context-body">
+                            No structure or context defined yet. Chat with Aura to outline or define what this document is about, and autocomplete will follow it.
+                        </div>
                     </div>
                     
                     <!-- Chat Message Area -->
                     <div class="chat-messages-container" id="chat-messages">
-                        <!-- Welcome message -->
-                        <div class="message assistant-message">
-                            <div class="message-sender">✦ Aura</div>
-                            <div class="message-content">
-                                Hello! I'm your interactive writing assistant. I can write templates, draft sections, or restructure your text directly in the editor.<br><br>
-                                Try asking me:<br>
-                                <em>"Write the structure of a 5 questions math exam but dont write the questions"</em>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Chat Input Area -->
