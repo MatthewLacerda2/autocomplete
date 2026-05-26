@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=gemini-3.1-flash-lite
@@ -16,6 +14,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    container_name: autocomplete_frontend
     ports:
-      - "3001:80"
+      - "2001:80"
+    restart: always
+    networks:
+      default:
+        aliases:
+          - goalgetter_frontend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: autocomplete_cloudflared
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     restart: always
